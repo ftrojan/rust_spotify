@@ -12,6 +12,16 @@ pub fn url_for_query(query: &str) -> String {
     result
 }
 
+async fn parse_response(response: reqwest::Response) -> Option<data::APIResponse> {
+    let result = match response.json::<data::APIResponse>().await {
+        Ok(parsed) => Some(parsed),
+        Err(_) => {
+            println!("Hm, the response did not match the shape we expected.");
+            None
+        }
+    };
+    result
+}
 
 pub struct Spotify {
     client: reqwest::Client,
@@ -41,8 +51,8 @@ impl Spotify {
             .send()
             .await
             .unwrap();
-        let response_valid = match response.status() {
-            reqwest::StatusCode::OK => Some(response),
+        let result = match response.status() {
+            reqwest::StatusCode::OK => parse_response(response).await,
             reqwest::StatusCode::UNAUTHORIZED => {
                 println!("Need to grab a new token at https://developer.spotify.com/console/get-search-item/?q=Muse&type=track&market=US&limit=5&offset=5&include_external=");
                 None
@@ -51,16 +61,6 @@ impl Spotify {
                 println!("Uh oh! Something unexpected happened.");
                 None
             },
-        };
-        let result = match response_valid {
-            None => None,
-            Some(r) => match r.json::<data::APIResponse>().await {
-                Ok(parsed) => Some(parsed),
-                Err(_) => {
-                    println!("Hm, the response did not match the shape we expected.");
-                    None
-                }
-            }
         };
         result
     }
