@@ -3,63 +3,7 @@
 /// get token: https://developer.spotify.com/console/get-search-item/?q=Muse&type=track&market=US&limit=5&offset=5&include_external=
 use reqwest;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT};
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Debug)]
-struct ExternalUrls {
-    spotify: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Artist {
-    name: String,
-    external_urls: ExternalUrls,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Album {
-    name: String,
-    artists: Vec<Artist>,
-    external_urls: ExternalUrls,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Track {
-    name: String,
-    href: String,
-    popularity: u32,
-    album: Album,
-    external_urls: ExternalUrls,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Items<T> {
-    items: Vec<T>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct APIResponse {
-    tracks: Items<Track>,
-}
-
-fn print_tracks(tracks: Vec<&Track>) {
-    let num_tracks = tracks.len();
-    println!("{} tracks found", num_tracks);
-    for track in tracks {
-        println!("track: {}", track.name);
-        println!("album: {}", track.album.name);
-        println!(
-            "artists: {}",
-            track
-                .album
-                .artists
-                .iter()
-                .map(|artist| artist.name.to_string())
-                .collect::<String>()
-        );
-        println!("--------");
-    }
-}
+use rust_spotify::data;
 
 #[tokio::main]
 async fn main() {
@@ -71,7 +15,7 @@ async fn main() {
     );
     let response = client
         .get(url)
-        .header(AUTHORIZATION, "Bearer BQDTpY8GVFyGTLkixPynLQPisEwXeDcd_vchAW9cGd2P6Nz-fEwzx_kvN4BMJmouf6whpX-Df4INrO0jcWWD2WVliHMR08OxUvZdUlelxMZXmxmjWIAEgV_1IdzX4yHm2ew2Igr1wwcg7ewG7xaIflMd_AZJYSjwX9r7GRwt7cmzgxmC36iF9AZNNx87317_NQc")
+        .header(AUTHORIZATION, "Bearer BQCUo4fjU0yU2BvJWdaNqay0FRqoTtgiRHQ0zfLsEi6-F4NFywQLNF_soooazl7erMaDmr6FXEMPCEgMB8Fvu7SXop10MpCTW6bNzR7NwCN2xBRtKcnBkX6aIUDYtm8X9azgqvqh4y60ZOcSs_8hoH17GtHUq4tPp283x9TzWpVznWpNZC0tE4cNuax9SncXYwQ")
         .header(CONTENT_TYPE, "application/json")
         .header(ACCEPT, "application/json")
         .send()
@@ -79,13 +23,13 @@ async fn main() {
         .unwrap();
     match response.status() {
         reqwest::StatusCode::OK => {
-            match response.json::<APIResponse>().await {
-                Ok(parsed) => print_tracks(parsed.tracks.items.iter().collect()),
+            match response.json::<data::APIResponse>().await {
+                Ok(parsed) => data::print_tracks(parsed.tracks.items.iter().collect()),
                 Err(_) => println!("Hm, the response did not match the shape we expected."),
             };
         },
         reqwest::StatusCode::UNAUTHORIZED => {
-            println!("Need to grab a new token");
+            println!("Need to grab a new token at https://developer.spotify.com/console/get-search-item/?q=Muse&type=track&market=US&limit=5&offset=5&include_external=");
         },
         _ => {
             panic!("Uh oh! Something unexpected happened.");
